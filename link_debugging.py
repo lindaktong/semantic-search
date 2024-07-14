@@ -9,7 +9,7 @@ import math
 import numpy as np
 import chardet
 from bs4 import BeautifulSoup
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF
 import pickle
 
 ssl_context = ssl.create_default_context(cafile=certifi.where())
