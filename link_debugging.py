@@ -125,7 +125,7 @@ async def fetch_and_process_pages(links):
 async def process_chunks(urls_list, chunk_size=10):
     embeddings_list = []
     for i in range(0, len(urls_list), chunk_size):
-        chunk = urls_list[i:i+200]
+        chunk = urls_list[i:i+chunk_size]
         embeddings = await fetch_and_process_pages(chunk)
         embeddings_list.extend(embeddings)
     return embeddings_list
