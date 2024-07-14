@@ -10,6 +10,7 @@ import numpy as np
 import chardet
 from bs4 import BeautifulSoup
 import fitz  # PyMuPDF
+import pickle
 
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
@@ -100,8 +101,8 @@ async def process_link(url, session: ClientSession):
         
         if text:
             print(f"URL okay: {url}")
-            return 1
-            # return await len_safe_get_embedding(text, model="text-embedding-3-small")
+            # return 1
+            return await len_safe_get_embedding(text, model="text-embedding-3-small")
     except Exception as e:
         print(f"Failed to process URL {url}: {e}")
     return None
@@ -114,13 +115,20 @@ async def fetch_and_process_pages(links):
             tasks.append(
                 process_link(url, session)
             )
-    #     embeddings_list = await asyncio.gather(*tasks)
-        full_list = await asyncio.gather(*tasks)
-        list_of_nones = [val for val in full_list if val == None]
-        print(len(list_of_nones)/len(full_list))
-    # embeddings_list = [embedding for embedding in embeddings_list if embedding]
-    # return embeddings_list
+        embeddings_list = await asyncio.gather(*tasks)
+        # full_list = await asyncio.gather(*tasks)
+        # list_of_nones = [val for val in full_list if val == None]
+        # print(len(list_of_nones)/len(full_list))
+    embeddings_list = [embedding for embedding in embeddings_list if embedding]
+    return embeddings_list
 
+async def process_chunks(urls_list, chunk_size=200):
+    embeddings_list = []
+    for i in range(0, len(urls_list), chunk_size):
+        chunk = urls_list[i:i+200]
+        embeddings = await fetch_and_process_pages(chunk)
+        embeddings_list.extend(embeddings)
+    return embeddings_list
 
 #---------------------------------------------------------------
 
@@ -137,10 +145,14 @@ def main():
     urls_list = [item["link"] for item in data_dict.values()]
     print(len(urls_list))
 
-    embeddings_list = asyncio.run(fetch_and_process_pages(urls_list[100000:100200]))
+    embeddings_list = asyncio.run(process_chunks(urls_list))
+
     # Map the elements of the embeddings list to the nested dictionary
-    # for key, embedding in zip(big_dict.keys(), embeddings_list):
-    #     big_dict[key]["embedding"] = embedding
+
+    for key, embedding in zip(data_dict.keys(), embeddings_list):
+        data_dict[key]["embedding"] = embedding
+
+    pickle.dump(data_dict, open("embeddings.pkl", "wb"))
 
 if __name__ == "__main__":
     main()
