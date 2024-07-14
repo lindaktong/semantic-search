@@ -9,6 +9,7 @@ import math
 import numpy as np
 import chardet
 from bs4 import BeautifulSoup
+import fitz  # PyMuPDF
 
 ssl_context = ssl.create_default_context(cafile=certifi.where())
 
@@ -77,13 +78,26 @@ async def process_link(url, session: ClientSession):
         link_response.raise_for_status()
         # Read the raw content
         raw_content = await link_response.read()
-        # Detect encoding
-        result = chardet.detect(raw_content)
-        encoding = result['encoding']
-        # Decode the content using the detected encoding
-        html = raw_content.decode(encoding, errors='ignore')
-        soup = BeautifulSoup(html, 'html.parser')
-        text = ' '.join(soup.stripped_strings)
+        # Detect content type
+        content_type = link_response.headers.get('Content-Type', '').lower()
+        
+        if 'pdf' in content_type:
+            # Process PDF
+            pdf_document = fitz.open(stream=raw_content, filetype="pdf")
+            text = ""
+            for page_num in range(len(pdf_document)):
+                page = pdf_document.load_page(page_num)
+                text += page.get_text()
+        else:
+            # Process HTML
+            result = chardet.detect(raw_content)
+            encoding = result['encoding']
+            if not encoding:
+                raise ValueError("Failed to detect encoding")
+            html = raw_content.decode(encoding, errors='ignore')
+            soup = BeautifulSoup(html, 'html.parser')
+            text = ' '.join(soup.stripped_strings)
+        
         if text:
             print(f"URL okay: {url}")
             return 1
@@ -123,7 +137,7 @@ def main():
     urls_list = [item["link"] for item in data_dict.values()]
     print(len(urls_list))
 
-    embeddings_list = asyncio.run(fetch_and_process_pages(urls_list[100100:100200]))
+    embeddings_list = asyncio.run(fetch_and_process_pages(urls_list[100000:100200]))
     # Map the elements of the embeddings list to the nested dictionary
     # for key, embedding in zip(big_dict.keys(), embeddings_list):
     #     big_dict[key]["embedding"] = embedding
