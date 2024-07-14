@@ -29,8 +29,8 @@ except Exception as e:
     print(f"An error occurred: {e}")
 
 # Extract all the ids
-ids = [user['id'] for user in users_list]
+ids = [user['id'] for user in sorted_users]
 
 # Print the list of ids
-print(sorted(ids))
+print(ids)
 print(len(ids))
