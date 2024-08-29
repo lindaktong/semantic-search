@@ -1,2 +1,2 @@
 # semantic-search
-Semantic search with mixedbread.ai
+Semantic search for curius.app. Main code in `semantic_search.py`. 
